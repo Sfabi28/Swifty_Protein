@@ -48,4 +48,21 @@ class DatabaseHelper {
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
+
+  Future<User?> findUser(String username, String password) async { // cerca un utente nel database
+    final db = await instance.database;
+
+    // esegue una query SELECT con filtro
+    final maps = await db.query(
+      'users',
+      where: 'username = ? AND password = ?',
+      whereArgs: [username, password],
+    );
+
+    if (maps.isNotEmpty) { // utente trovato
+      return User.fromMap(maps.first);
+    } else {
+      return null;
+    }
+  }
 }

@@ -84,7 +84,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             Container(
               width: double.infinity,
               height: double.infinity,
-              color: const Color.fromARGB(255, 233, 233, 233),
+              color: const Color.fromARGB(255, 133, 133, 133),
             ),
             ?child, // applica ai children solo se esistono
           ],
