@@ -1,122 +1,97 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/services.dart';
+import 'screens/login_screen.dart';
 
-void main() {
-  runApp(const MyApp());
+// chiave globale per controllare la navigazione anche fuori dal contesto UI.
+// fondamentale per reindirizzare l'utente al Login quando l'app viene ripresa dal background,
+// poiché in quel momento non abbiamo accesso diretto al `context` della pagina corrente.
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+void main() async { // entry point dell'applicazione
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  await SystemChrome.setPreferredOrientations([ // lock dello schermo in verticale
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
+  try { // carico le variabili d'ambiente dal file .env
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    debugPrint("Errore .env: $e");
+  }
+  
+  runApp(const MyApp()); // avvio l'app
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget { // inizializzazione dello StatefulWidget per gestire il ciclo di vita
   const MyApp({super.key});
 
-  // This widget is the root of your application.
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+// aggiungo il mixin WidgetsBindingObserver: questo ci permette di "ascoltare" gli eventi di sistema (pausa o chiusura)
+
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver { 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this); // registra questo widget come osservatore degli eventi
+  }
+
+  @override
+  void dispose() { // metodo chiamato quando il widget viene distrutto definitivamente
+    WidgetsBinding.instance.removeObserver(this); // rimuove l'observer per evitare memory leak
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) { // metodo invocato automaticamente dal sistema al cambio di stato
+    // se lo stato è "resumed" (l'utente è tornato sull'app dopo aver premuto Home o cambiato app)
+    if (state == AppLifecycleState.resumed) {
+      // usa la chiave globale per "resettare" la navigazione e forzare la schermata di Login
+      navigatorKey.currentState?.pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        (route) => false, // rimuove tutto lo storico di navigazione precedente
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+      navigatorKey: navigatorKey, // collega la chiave globale al navigatore dell'app
+      title: 'Swifty Protein',
+      debugShowCheckedModeBanner: false,
+      
+      theme: ThemeData( // configurazione globale dello stile grafico
+        useMaterial3: true,
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: Colors.transparent, //tTrasparente perché usiamo uno sfondo custom nel builder
+        canvasColor: Colors.transparent,
+        colorScheme: const ColorScheme.dark(
+          surface: Colors.transparent,
+          primary: Color.fromARGB(255, 76, 78, 80),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ),
+
+      builder: (context, child) { // avvolge ogni singola pagina dell'app
+        return Stack(
+          children: [
+            // sfondo grigio fisso che sarà visibile dietro a tutte le pagine
+            Container(
+              width: double.infinity,
+              height: double.infinity,
+              color: const Color.fromARGB(255, 233, 233, 233),
+            ),
+            ?child, // applica ai children solo se esistono
+          ],
+        );
+      },
+
+      home: const LoginScreen(),
     );
   }
 }
