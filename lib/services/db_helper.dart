@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import '../models/user_model.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init(); //unica istanza del db che useremo in tutta l'app
@@ -38,14 +39,13 @@ class DatabaseHelper {
     await db.execute(userTable);
   }
 
-  Future<int> registerUser(String username, String password) async { // aggiunta di un utente al db
+  Future<int> registerUser(User user) async { // aggiunta di un utente al db
     final db = await instance.database;
     
-    final data = {
-      'username': username,
-      'password': password, 
-    };
-
-    return await db.insert('users', data);
+    return await db.insert(
+      'users', 
+      user.toMap(), 
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 }
