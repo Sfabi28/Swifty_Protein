@@ -71,7 +71,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         brightness: Brightness.light,
         scaffoldBackgroundColor: Colors.transparent, //tTrasparente perché usiamo uno sfondo custom nel builder
         canvasColor: Colors.transparent,
-        colorScheme: const ColorScheme.dark(
+        colorScheme: const ColorScheme.light(
           surface: Colors.transparent,
           primary: Color.fromARGB(255, 76, 78, 80),
         ),
