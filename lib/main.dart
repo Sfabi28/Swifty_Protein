@@ -69,7 +69,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       theme: ThemeData( // configurazione globale dello stile grafico
         useMaterial3: true,
         brightness: Brightness.light,
-        scaffoldBackgroundColor: Colors.transparent, //tTrasparente perché usiamo uno sfondo custom nel builder
+        scaffoldBackgroundColor: Colors.transparent, //trasparente perché usiamo uno sfondo custom nel builder
         canvasColor: Colors.transparent,
         colorScheme: const ColorScheme.light(
           surface: Colors.transparent,
