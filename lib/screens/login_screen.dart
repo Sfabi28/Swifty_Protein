@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/db_helper.dart';
 
 class LoginScreen extends StatefulWidget { // necessario per gestire input utente e biometria
   const LoginScreen({super.key});
@@ -8,6 +9,9 @@ class LoginScreen extends StatefulWidget { // necessario per gestire input utent
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+
+  final DatabaseHelper _dbhelper = DatabaseHelper.instance; //prendo l'istanza del db
+
   @override
   void initState() {
     super.initState();

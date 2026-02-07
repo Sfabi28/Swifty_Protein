@@ -3,9 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/services.dart';
 import 'screens/login_screen.dart';
 
-// chiave globale per controllare la navigazione anche fuori dal contesto UI.
-// fondamentale per reindirizzare l'utente al Login quando l'app viene ripresa dal background,
-// poiché in quel momento non abbiamo accesso diretto al `context` della pagina corrente.
+// chiave globale utilizzata per tornare subito alla schermata di login quando l'app torna dal background
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async { // entry point dell'applicazione

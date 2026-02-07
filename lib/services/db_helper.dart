@@ -10,10 +10,10 @@ class DatabaseHelper {
   static Database? _database;
 
   Future<Database> get database async { // getter del database
-    // se esiste già, ritornalo subito
+    // se esiste già return subito
     if (_database != null) return _database!;
 
-    // se non esiste viene inizializzato (apri il file e crea tabelle)
+    // se non esiste viene inizializzato
     _database = await _initDB('swifty_protein.db');
     return _database!;
   }
