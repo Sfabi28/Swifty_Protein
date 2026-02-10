@@ -77,10 +77,19 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: Colors.transparent, //trasparente per mostrare lo sfondo grigio globale definito nel main.dart
       body: Align(
         alignment: const Alignment(0, 0.8),
-        child: IconButton( //button per impronta digitale
-          icon: const Icon(Icons.fingerprint, size: 50),
-          onPressed: _authenticate,
-          tooltip: 'Accedi con Impronta',
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton( //button per impronta digitale
+              icon: const Icon(Icons.fingerprint, size: 50),
+              onPressed: _authenticate,
+              tooltip: 'Accedi con Impronta',
+            ),
+            const Text(
+              "Login Screen",
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+          ],
         ),
       ),
     );
