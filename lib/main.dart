@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/services.dart';
 import 'screens/login_screen.dart';
+import 'screens/biometrics_screen.dart';
+
 
 // chiave globale utilizzata per tornare subito alla schermata di login quando l'app torna dal background
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -89,7 +91,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         );
       },
 
-      home: const LoginScreen(),
+      home: const BiometricsScreen(),
     );
   }
 }
