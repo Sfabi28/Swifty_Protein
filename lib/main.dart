@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/services.dart';
 import 'screens/login_screen.dart';
-import 'screens/biometrics_screen.dart';
+import 'screens/home.dart';
+import 'services/app_state.dart';
 
 
 // chiave globale utilizzata per tornare subito alla schermata di login quando l'app torna dal background
@@ -51,6 +52,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) { // metodo invocato automaticamente dal sistema al cambio di stato
     // se lo stato è "resumed" (l'utente è tornato sull'app dopo aver premuto Home o cambiato app)
     if (state == AppLifecycleState.resumed) {
+      if (AppState.ignoreNextResume) {
+        AppState.ignoreNextResume = false;
+        return;
+      }
       // usa la chiave globale per "resettare" la navigazione e forzare la schermata di Login
       navigatorKey.currentState?.pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -73,7 +78,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         canvasColor: Colors.transparent,
         colorScheme: const ColorScheme.light(
           surface: Colors.transparent,
-          primary: Color.fromARGB(255, 76, 78, 80),
+          primary: Color.fromARGB(255, 255, 255, 255),
         ),
       ),
 
@@ -84,14 +89,18 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             Container(
               width: double.infinity,
               height: double.infinity,
-              color: const Color.fromARGB(255, 133, 133, 133),
+              color: const Color.fromARGB(255, 255, 255, 255),
             ),
             ?child, // applica ai children solo se esistono
           ],
         );
       },
 
-      home: const BiometricsScreen(),
+      initialRoute: '/login',
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        '/home': (context) => const HomeScreen(),
+      },
     );
   }
 }
