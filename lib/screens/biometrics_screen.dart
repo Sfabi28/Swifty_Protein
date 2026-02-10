@@ -17,6 +17,16 @@ class _BiometricsScreenState extends State<BiometricsScreen> {
   @override
   void initState() {
     super.initState();
+    _redirectIfUnsupported();
+  }
+
+  Future<void> _redirectIfUnsupported() async {
+    final canAuth = await _canAuthenticate();
+    if (!mounted) return;
+
+    if (!canAuth) {
+      Navigator.of(context).pushReplacementNamed('/login');
+    }
   }
 
   Future<bool> _canAuthenticate() async {
@@ -27,7 +37,7 @@ class _BiometricsScreenState extends State<BiometricsScreen> {
 
   Future<bool> _authenticate() async {
     final bool didAuthenticate = await auth.authenticate(
-      localizedReason: 'Please authenticate to show account balance',
+      localizedReason: 'Please authenticate to access',
       authMessages: <AuthMessages>[
         AndroidAuthMessages(
           signInTitle: 'Oops! Biometric authentication required!',
