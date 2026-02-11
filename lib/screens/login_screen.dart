@@ -58,14 +58,16 @@ class _LoginScreenState extends State<LoginScreen> {
           SnackBar(content: Text('Errore: $e')),
         );
       }
-      return;
-    } finally {
       AppState.ignoreNextResume = false;
+      return;
     }
 
     if (authenticated && mounted) { //se autenticazione funziona allora passo alla home, probabilmente da cambiare per dire a quale user accedere
-      AppState.ignoreNextResume = false;
-      Navigator.of(context).pushReplacementNamed('/home'); //TODO aggiungere parte del vero login (user connesso)
+      Navigator.of(context).pushReplacementNamed('/home').then((_) {
+      AppState.ignoreNextResume = false; // reimposta la flag dopo che la pagina è cambiata
+      });
+    } else {
+      AppState.ignoreNextResume = false; // reimposta la flag se non autenticato
     }
   }
 
