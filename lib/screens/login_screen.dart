@@ -14,7 +14,7 @@ class LoginScreen extends StatefulWidget { // necessario per gestire input utent
 
 class _LoginScreenState extends State<LoginScreen> {
 
-  final DatabaseHelper _dbhelper = DatabaseHelper.instance; //prendo l'istanza del db
+  final DatabaseHelper _dbhelper = DatabaseHelper.instance; //prendo l'istanza del db, per ora non serve a nel futuro servira'
 
   final LocalAuthentication auth = LocalAuthentication();
 
@@ -39,7 +39,7 @@ class _LoginScreenState extends State<LoginScreen> {
         localizedReason: 'Autenticati per accedere',
         options: const AuthenticationOptions(
           stickyAuth: true,
-          biometricOnly: false,
+          biometricOnly: true,
         ),
         authMessages: const <AuthMessages>[ //pop-up di autentificazione
           AndroidAuthMessages(
@@ -59,10 +59,13 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
       return;
+    } finally {
+      AppState.ignoreNextResume = false;
     }
 
     if (authenticated && mounted) { //se autenticazione funziona allora passo alla home, probabilmente da cambiare per dire a quale user accedere
-      Navigator.of(context).pushReplacementNamed('/home');
+      AppState.ignoreNextResume = false;
+      Navigator.of(context).pushReplacementNamed('/home'); //TODO aggiungere parte del vero login (user connesso)
     }
   }
 
