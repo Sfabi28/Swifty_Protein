@@ -18,15 +18,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
   final LocalAuthentication auth = LocalAuthentication();
 
-  bool showFigerprintBtn = false;
+  bool showFingerprintBtn = false;
 
   Future<bool> _checkSupport() async {
-      AppState.ignoreNextResume = true;
       final bool canCheck = await auth.canCheckBiometrics;
       final bool isDeviceSupported = await auth.isDeviceSupported(); //controllo se posso utilizzare la biometri sul dispositivo
 
-      if (!canCheck && !isDeviceSupported) { //se non posso usarla per qualche motivo allora lo dico in una snackbar (toast)
-        AppState.ignoreNextResume = false;
+      if (!canCheck || !isDeviceSupported) { //se non posso usarla per qualche motivo allora lo dico in una snackbar (toast)
         if (!mounted) return(false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Biometria non disponibile su questo dispositivo')),
@@ -38,6 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _authenticate() async { //funzione per autenticazione con impronta digitale
     bool authenticated = false;
+    AppState.ignoreNextResume = true;
 
     try {
       final bool supported = await _checkSupport();
@@ -90,8 +89,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _initBiometricSupport() async { //controllo iniziale se la biometria e' disponibile sul dispositivo
     bool support = await _checkSupport();
+    if (!mounted) return;
     setState(() {
-      showFigerprintBtn = support;
+      showFingerprintBtn = support;
     });
   }
 
@@ -104,7 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (showFigerprintBtn)
+            if (showFingerprintBtn)
               IconButton( //button per impronta digitale
                 icon: const Icon(Icons.fingerprint, size: 50),
                 onPressed: _authenticate,
