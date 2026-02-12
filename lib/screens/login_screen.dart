@@ -14,24 +14,35 @@ class LoginScreen extends StatefulWidget { // necessario per gestire input utent
 
 class _LoginScreenState extends State<LoginScreen> {
 
-  final DatabaseHelper _dbhelper = DatabaseHelper.instance; //prendo l'istanza del db, per ora non serve a nel futuro servira'
+  final DatabaseHelper _dbhelper = DatabaseHelper.instance; //TODO login col db
 
   final LocalAuthentication auth = LocalAuthentication();
 
-  Future<void> _authenticate() async { //funzione per autenticazione con impronta digitale
-    bool authenticated = false;
-    
-    try {
+  bool showFigerprintBtn = false;
+
+  Future<bool> _checkSupport() async {
       AppState.ignoreNextResume = true;
       final bool canCheck = await auth.canCheckBiometrics;
       final bool isDeviceSupported = await auth.isDeviceSupported(); //controllo se posso utilizzare la biometri sul dispositivo
 
       if (!canCheck && !isDeviceSupported) { //se non posso usarla per qualche motivo allora lo dico in una snackbar (toast)
         AppState.ignoreNextResume = false;
-        if (!mounted) return;
+        if (!mounted) return(false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Biometria non disponibile su questo dispositivo')),
         );
+        return(false);
+      }
+      return(true);
+  }
+
+  Future<void> _authenticate() async { //funzione per autenticazione con impronta digitale
+    bool authenticated = false;
+
+    try {
+      final bool supported = await _checkSupport();
+      if (!supported) {
+        AppState.ignoreNextResume = false;
         return;
       }
 
@@ -63,7 +74,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     if (authenticated && mounted) { //se autenticazione funziona allora passo alla home, probabilmente da cambiare per dire a quale user accedere
-      Navigator.of(context).pushReplacementNamed('/home').then((_) {
+      Navigator.of(context).pushReplacementNamed('/home').then((_) { //TODO login con determinato utente
       AppState.ignoreNextResume = false; // reimposta la flag dopo che la pagina è cambiata
       });
     } else {
@@ -74,6 +85,14 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() { //quando la finestra viene creata per la prima volta
     super.initState();
+    _initBiometricSupport();
+  }
+
+  Future<void> _initBiometricSupport() async { //controllo iniziale se la biometria e' disponibile sul dispositivo
+    bool support = await _checkSupport();
+    setState(() {
+      showFigerprintBtn = support;
+    });
   }
 
   @override
@@ -85,11 +104,12 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            IconButton( //button per impronta digitale
-              icon: const Icon(Icons.fingerprint, size: 50),
-              onPressed: _authenticate,
-              tooltip: 'Accedi con Impronta',
-            ),
+            if (showFigerprintBtn)
+              IconButton( //button per impronta digitale
+                icon: const Icon(Icons.fingerprint, size: 50),
+                onPressed: _authenticate,
+                tooltip: 'Accedi con Impronta',
+              ),
             const Text(
               "Login Screen",
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
