@@ -26,9 +26,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (!canCheck || !isDeviceSupported) { //se non posso usarla per qualche motivo allora lo dico in una snackbar (toast)
         if (!mounted) return(false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Biometria non disponibile su questo dispositivo')),
-        );
         return(false);
       }
       return(true);
