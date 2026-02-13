@@ -50,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         authMessages: const <AuthMessages>[ //pop-up di autentificazione
           AndroidAuthMessages(
-            signInTitle: 'Accesso Biometrico',
+            signInTitle: 'Accedi con impronta',
             cancelButton: 'Annulla',
           ),
           IOSAuthMessages(
