@@ -1,0 +1,26 @@
+mercoledi   7 gennaio libero
+giovedi     8 gennaio recupero libero capodanno
+venerdi     9                               ferie
+sabato      10 lavoro
+domenica    11 lavoro
+lunedi      12                              ferie
+martedi     13                              ferie
+mercoledi   14              libero
+giovedi     15                              ferie
+venerdi     16                              ferie
+sabato      17 lavoro
+domenica    18 lavoro
+lunedi      19 lavoro
+martedi     20 lavoro
+mercoledi   21              libero
+giovedi     22 lavoro
+venerdi     23 lavoro
+sabato      24 lavoro
+domenica    25 lavoro
+lunedi      26                              ferie
+martedi     27                              ferie
+mercoledi   28              libero
+giovedi     29                              ferie
+venerdi     30                              ferie
+sabato      31                              ferie
+
