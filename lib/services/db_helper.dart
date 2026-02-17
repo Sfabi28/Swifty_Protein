@@ -49,6 +49,22 @@ class DatabaseHelper {
     );
   }
 
+  Future<User?> getUserById(String id) async { 
+    final db = await instance.database;
+
+    final maps = await db.query(
+      'users',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+
+    if (maps.isNotEmpty) {
+      return User.fromMap(maps.first);
+    } else {
+      return null;
+    }
+  }
+
   Future<User?> findUser(String username, String password) async { // cerca un utente nel database
     final db = await instance.database;
 

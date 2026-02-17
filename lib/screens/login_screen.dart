@@ -29,7 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final bool canCheck = await auth.canCheckBiometrics;
       final bool isDeviceSupported = await auth.isDeviceSupported(); //controllo se posso utilizzare la biometri sul dispositivo
       var idToLog = await prefs.then((prefs) => prefs.getString('loggedInUser')); //prendo l'username dell'utente loggato dalle preferenze condivise
-
+      debugPrint('canCheck: $canCheck, isDeviceSupported: $isDeviceSupported, idToLog: $idToLog'); //debug per vedere se posso usare la biometria e quale utente è loggato
       if (!canCheck && !isDeviceSupported || idToLog == null) { //se non posso usarla per qualche motivo allora lo dico in una snackbar (toast)
         AppState.ignoreNextResume = false;
         if (!mounted) return;
@@ -102,7 +102,7 @@ class _LoginScreenState extends State<LoginScreen> {
     _dbhelper.findUser(username, password).then((user) {
       if (user != null) {
         prefs.then((prefs) {
-          prefs.setString('loggedInUser', user.username); //salvo l'username dell'utente loggato nelle preferenze condivise
+          prefs.setString('loggedInUser', user.id.toString()); //salvo l'username dell'utente loggato nelle preferenze condivise
         });
         Navigator.of(context).pushReplacementNamed('/home');
       } else {
@@ -126,7 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
       try{
       _dbhelper.registerUser(user).then((id) {
         prefs.then((prefs) {
-          prefs.setString('loggedInUser', user.username);
+          prefs.setString('loggedInUser', user.id.toString()); //salvo l'username dell'utente loggato nelle preferenze condivise
         });
         Navigator.of(context).pushReplacementNamed('/home');
       });
