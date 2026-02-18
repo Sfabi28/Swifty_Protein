@@ -18,61 +18,31 @@ class LoginScreen extends StatefulWidget { // necessario per gestire input utent
 
 class _LoginScreenState extends State<LoginScreen> {
 
-  final DatabaseHelper _dbhelper = DatabaseHelper.instance; //prendo l'istanza del db, per ora non serve a nel futuro servira'
-  final _prefs =  SharedPreferences.getInstance();
+  bool showFingerprintBtn = false;
 
-  final LocalAuthentication auth = LocalAuthentication();
-  final _authSubject = PublishSubject<void>();
-  late StreamSubscription<void> _authSubscription;
-
-  bool _isSnackbarActive = false; // Semaforo per la SnackBar
-
-  @override
-  void dispose() {
-    _authSubscription.cancel(); // FONDAMENTALE: Cancella la subscription
-    _authSubject.close();
-    _nameController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
- void _showMessage(String message, {bool isError = false}) {
-  if (!mounted) return;
-  
-  if (_isSnackbarActive) return;
-
-  _isSnackbarActive = true;
-
-  var controller = ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(message, style: const TextStyle(color: Colors.white)),
-      backgroundColor: isError ? Colors.redAccent : Colors.teal,
-      duration: const Duration(seconds: 2),
-    ),
-  );
-
-  controller.closed.then((_) {
-    if (mounted) {
-      _isSnackbarActive = false;
-    }
-  });
-}
-
-  Future<void> _authenticate() async {
-    bool authenticated = false;
-
-    try {
-      AppState.ignoreNextResume = true;
+  Future<bool> _checkSupport() async {
       final bool canCheck = await auth.canCheckBiometrics;
       final bool isDeviceSupported = await auth.isDeviceSupported();
       
       final prefs = await _prefs; // Await pulito
       var idToLog = prefs.getString('loggedInUser');
 
-      if (!canCheck || !isDeviceSupported || idToLog == null) {
+      if (!canCheck || !isDeviceSupported) { //se non posso usarla per qualche motivo allora lo dico in una snackbar (toast)
+        if (!mounted) return(false);
+        return(false);
+      }
+      return(true);
+  }
+
+  Future<void> _authenticate() async { //funzione per autenticazione con impronta digitale
+    bool authenticated = false;
+    AppState.ignoreNextResume = true;
+
+    try {
+      final bool supported = await _checkSupport();
+      if (!supported) {
         AppState.ignoreNextResume = false;
-        _showMessage('Biometria non disponibile o utente non trovato', isError: true);
-        return; // Il Future finisce qui, exhaustMap si sblocca
+        return;
       }
 
       authenticated = await auth.authenticate(
@@ -83,7 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         authMessages: const <AuthMessages>[
           AndroidAuthMessages(
-            signInTitle: 'Accesso Biometrico',
+            signInTitle: 'Accedi con impronta',
             cancelButton: 'Annulla',
           ),
           IOSAuthMessages(
@@ -98,9 +68,9 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    if (authenticated && mounted) {
-      Navigator.of(context).pushReplacementNamed('/home').then((_) {
-        AppState.ignoreNextResume = false;
+    if (authenticated && mounted) { //se autenticazione funziona allora passo alla home, probabilmente da cambiare per dire a quale user accedere
+      Navigator.of(context).pushReplacementNamed('/home').then((_) { //TODO login con determinato utente
+      AppState.ignoreNextResume = false; // reimposta la flag dopo che la pagina è cambiata
       });
     } else {
       AppState.ignoreNextResume = false;
@@ -114,15 +84,15 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() { //quando la finestra viene creata per la prima volta
     super.initState();
-    
-    _authSubscription = _authSubject
-      .exhaustMap((_) => Stream.fromFuture(_authenticate()))
-      .listen(
-        (_) {}, 
-        onError: (e) {
-          debugPrint("Errore durante l'autenticazione: $e");
-        }
-      );
+    _initBiometricSupport();
+  }
+
+  Future<void> _initBiometricSupport() async { //controllo iniziale se la biometria e' disponibile sul dispositivo
+    bool support = await _checkSupport();
+    if (!mounted) return;
+    setState(() {
+      showFingerprintBtn = support;
+    });
   }
 
   void _onAuthenticatePressed() {
@@ -176,45 +146,23 @@ class _LoginScreenState extends State<LoginScreen> {
 @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent, // Assicurati di avere un contenitore colorato sotto o sembrerà nero
-      body: Center(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-               const SizedBox(height: 20),
-               const Text("Login", style: TextStyle(fontSize: 18, color: Color.fromARGB(179, 207, 58, 58))),
-               const SizedBox(height: 20),
-               SizedBox(
-                width: 300,
-                child: Column(
-                  children: [
-                    TextField(controller: _nameController, decoration: const InputDecoration(hintText: "Username", border: OutlineInputBorder())),
-                    TextField(controller: _passwordController, decoration: const InputDecoration(hintText: "Password", border: OutlineInputBorder())),
-                  ]
-                )       
-              ),
-              TextButton(
-                onPressed: _login, // Nota: non serve la lambda () => _login()
-                style: TextButton.styleFrom(backgroundColor: Colors.teal),
-                child: const Text("Login", style: TextStyle(color: Colors.white)),
-              ),
-              TextButton(
-                onPressed: _signIn,
-                style: TextButton.styleFrom(backgroundColor: Colors.teal),
-               child: const Text("Registrati", style: TextStyle(color: Colors.white))
-              ),
-              const SizedBox(height: 30),
-              
-              // Tasto Biometria collegato al Subject
-              IconButton(
+      backgroundColor: Colors.transparent, //trasparente per mostrare lo sfondo grigio globale definito nel main.dart
+      body: Align(
+        alignment: const Alignment(0, 0.8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (showFingerprintBtn)
+              IconButton( //button per impronta digitale
                 icon: const Icon(Icons.fingerprint, size: 50),
-                padding: const EdgeInsets.all(20),
-                onPressed: _onAuthenticatePressed, // Triggera l'evento
+                onPressed: _authenticate,
                 tooltip: 'Accedi con Impronta',
               ),
-            ],
-          ),
+            const Text(
+              "Login Screen",
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+          ],
         ),
       ),
     );
