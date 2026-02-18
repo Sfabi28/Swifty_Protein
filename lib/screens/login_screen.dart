@@ -203,16 +203,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 onPressed: _authenticate,
                 tooltip: 'Accedi con Impronta',
               ),
-
-              const SizedBox(height: 10),
-
-              const Text(
-                "Login Screen",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
             ],
           ),
         ),
