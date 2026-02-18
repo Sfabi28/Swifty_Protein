@@ -24,7 +24,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final LocalAuthentication auth = LocalAuthentication();
   final _authSubject = PublishSubject<void>();
   late StreamSubscription<void> _authSubscription;
-
+     
   bool _isSnackbarActive = false; // Semaforo per la SnackBar
 
   @override
