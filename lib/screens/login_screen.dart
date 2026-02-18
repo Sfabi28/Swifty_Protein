@@ -124,9 +124,9 @@ class _LoginScreenState extends State<LoginScreen> {
     }
     final user = User(username: username, password: password);
       try{
-      _dbhelper.registerUser(user).then((id) {
+        _dbhelper.registerUser(user).then((id) {
         prefs.then((prefs) {
-          prefs.setString('loggedInUser', user.id.toString()); //salvo l'username dell'utente loggato nelle preferenze condivise
+          prefs.setString('loggedInUser', id.toString()); //salvo l'username dell'utente loggato nelle preferenze condivise
         });
         Navigator.of(context).pushReplacementNamed('/home');
       });
