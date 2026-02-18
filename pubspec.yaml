@@ -41,6 +41,7 @@ dependencies:
   local_auth_darwin: ^1.4.1
   local_auth_android: ^1.0.12
   shared_preferences: ^2.2.2
+  rxdart: ^0.27.0
 
 dev_dependencies:
   flutter_test:
