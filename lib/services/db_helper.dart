@@ -1,6 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import '../models/user_model.dart';
+import 'package:swifty_protein/models/user_model.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init(); //unica istanza del db che useremo in tutta l'app
@@ -47,6 +47,22 @@ class DatabaseHelper {
       user.toMap(), 
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+  }
+
+  Future<User?> getUserById(String id) async { 
+    final db = await instance.database;
+
+    final maps = await db.query(
+      'users',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+
+    if (maps.isNotEmpty) {
+      return User.fromMap(maps.first);
+    } else {
+      return null;
+    }
   }
 
   Future<User?> findUser(String username, String password) async { // cerca un utente nel database
