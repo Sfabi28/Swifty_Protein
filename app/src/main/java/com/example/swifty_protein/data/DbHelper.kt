@@ -1,10 +1,10 @@
-package com.example.swifty_protein
+package com.example.swifty_protein.data
 
+import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
-import android.content.ContentValues
 import android.database.sqlite.SQLiteOpenHelper
-
+//database base per user
 
 class DbHelper (private val context: Context): SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION){
     companion object{
