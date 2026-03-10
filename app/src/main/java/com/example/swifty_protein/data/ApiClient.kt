@@ -51,7 +51,7 @@ abstract class BaseApiClient {
     }
 }
 
-object ApiClient {
+object ApiClient : BaseApiClient() {
     private val BASE_URL = "https://files.rcsb.org/"
     private val loggingInterceptor = HttpLoggingInterceptor().apply{
         level = HttpLoggingInterceptor.Level.BASIC

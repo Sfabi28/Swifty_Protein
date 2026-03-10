@@ -4,13 +4,6 @@ class User {
     var userName = ""
     var idLeg = mutableListOf<Number>()
 
-    fun getUserName(): String{
-        return userName
-    }
-
-    fun getIdLeg(): List<Number>{
-        return idLeg
-    }
 
     fun addIdLeg(id: Number){
         idLeg.add(id)

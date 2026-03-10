@@ -8,20 +8,10 @@ class Atom{
     var z = 0.0
     var charge = 0.0
 
-    fun getId(): String{
-        return id_atoms
-    }
-
-    fun getType(): String{
-        return type
-    }
     fun returnCoordinates(): Triple<Double, Double, Double>{
         return Triple(x, y, z)
     }
 
-    fun getCharge(): Double{
-        return charge
-    }
 }
 
 class Bond{
@@ -30,21 +20,6 @@ class Bond{
     var order = ""
     var aromatic = Boolean
 
-    fun getAtomOne(): Atom{
-        return AtomOne
-    }
-
-    fun getAtomTwo(): Atom{
-        return AtomTwo
-    }
-
-    fun getOrder(): String{
-        return order
-    }
-
-    fun getAromatic(): Boolean.Companion{
-        return aromatic
-    }
 }
 
 class Ligand {
