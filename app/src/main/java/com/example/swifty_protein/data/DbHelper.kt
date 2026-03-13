@@ -2,19 +2,21 @@ package com.example.swifty_protein.data
 
 import android.content.ContentValues
 import android.content.Context
+import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import org.mindrot.jbcrypt.BCrypt
 //database base per user
 
 class DbHelper (private val context: Context): SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION){
     companion object{
         const val DATABASE_NAME = "mydatabase.db"
-        const val DATABASE_VERSION = 1
+        const val DATABASE_VERSION = 2
 
         const val TABLE_USERS = "users"
         const val COLUMN_ID = "_id"
         const val COLUMN_NAME = "name"
-        const val COLUMN_PASSWORD = "password"
+        const val COLUMN_PASSWORD = "password_hash"
 
         const val TABLE_LIGANDS = "ligands"
         const val COLUMN_PROTEIN_ID = "id"
@@ -31,6 +33,12 @@ class DbHelper (private val context: Context): SQLiteOpenHelper(context, DATABAS
         const val COLUMN_FAV_LIGAND_ID = "protein_id"
 
     }
+
+    data class AuthResult(
+        val success: Boolean,
+        val userId: Long? = null,
+        val message: String? = null
+    )
 
     override fun onCreate(db: SQLiteDatabase){
         val CREATE_TABLE_USERS = """CREATE TABLE $TABLE_USERS (
@@ -66,22 +74,70 @@ class DbHelper (private val context: Context): SQLiteOpenHelper(context, DATABAS
         onCreate(db)
     }
 
+    fun hashPassword(password: String): String {
+        return BCrypt.hashpw(password, BCrypt.gensalt())
+    }
+
+    fun verifyPassword(userSuppliedPassword: String, storedHash: String): Boolean {
+        return BCrypt.checkpw(userSuppliedPassword, storedHash)
+    }
+
     override fun onOpen(db: SQLiteDatabase) {
         super.onOpen(db)
         db.setForeignKeyConstraintsEnabled(true)
     }
 
-    fun addUser(name: String, password: String): Long {
-        if (name.isBlank() || password.isBlank()) {
-            return -1L
+    fun getUser(name: String, password: String): Long {
+        val username = name.trim()
+        if (username.isBlank() || password.isBlank()) {
+            return -1L //TODO aggiungere messaggio di errore nel caso in cui campi vuoti
         }
+
+        val db = this.readableDatabase
+        val cursor = db.query(
+            TABLE_USERS,
+            arrayOf(COLUMN_ID, COLUMN_PASSWORD),
+            "$COLUMN_NAME = ?",
+            arrayOf(username),
+            null,
+            null,
+            null
+        )
+
+        return try {
+            if (!cursor.moveToFirst()) {
+                -1L
+            } else {
+                val userId = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_ID))
+                val storedHash = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_PASSWORD))
+                if (verifyPassword(password, storedHash)) userId else -1L
+            }
+        } finally {
+            cursor.close()
+            db.close()
+        }
+    }
+
+    fun addUser(name: String, password: String): AuthResult {
+        val username = name.trim()
+        if (username.isBlank() || password.isBlank()) {
+            return AuthResult(success = false, message = "Username and Password required")
+        }
+
         val db = this.writableDatabase
-        val values = ContentValues().apply {
-            put(COLUMN_NAME, name)
-            put(COLUMN_PASSWORD, password)
+        return try {
+            val values = ContentValues().apply {
+                put(COLUMN_NAME, username)
+                put(COLUMN_PASSWORD, hashPassword(password))
+            }
+            val id = db.insertOrThrow(TABLE_USERS, null, values)
+            AuthResult(success = true, userId = id)
+        } catch (_: SQLiteConstraintException) {
+            AuthResult(success = false, message = "Username not valid")
+        } catch (_: Exception) {
+            AuthResult(success = false, message = "Error in account creation")
+        } finally {
+            db.close()
         }
-        val id = db.insert(TABLE_USERS, null, values)
-        db.close()
-        return id
     }
 }
