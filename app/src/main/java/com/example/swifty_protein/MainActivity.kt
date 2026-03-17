@@ -139,7 +139,10 @@ fun SearchBarLigand(onValueChange: (String) -> Unit){
     ){
         TextField(
             value = text,
-            onValueChange = {text = it},
+            onValueChange = {
+                text = it
+                onValueChange("")
+            },
             label = { Text("Filtra Ligandi") },
             placeholder = { Text("Es: 1EJ") },
             singleLine = true,
@@ -163,14 +166,14 @@ fun SearchBarLigand(onValueChange: (String) -> Unit){
                         text = ligand,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable(!isNotFound) {
-                                onValueChange(ligand)
+                            .clickable(enabled = !isNotFound) {
                                 text = ligand
+                                onValueChange(ligand)
                                 focusManager.clearFocus()
                             }
                             .padding(16.dp),
                         style = MaterialTheme.typography.bodyLarge,
-                        color = if (isNotFound) Color.Gray else Color.Unspecified
+                        color = if (isNotFound) Color.Gray else Color.Unspecified,
                     )
                     HorizontalDivider(
                         modifier = Modifier.padding(horizontal = 16.dp),
