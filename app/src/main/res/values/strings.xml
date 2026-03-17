@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Swifty_Protein</string>
+    <string name="notFound">ligand not found</string>
 </resources>
