@@ -19,11 +19,15 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.swifty_protein.R
 import com.example.swifty_protein.data.Resource
 import com.example.swifty_protein.ui.viewmodel.LigandViewModel
+import com.example.swifty_protein.model.Ligand
+
+
 
 @Composable
 fun SearchBarLigand(onValueChange: (String) -> Unit) {
@@ -161,20 +165,36 @@ fun HomeScreen(onBack: () -> Unit) {
                         Text("Pronto per la ricerca...")
                     }
                     is Resource.Success -> {
+                        val ligand = state.data // Questo è l'oggetto Ligand parsato!
+                        ligand.parseCifData()
                         Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                            Text("Nome: ${ligand.name}", style = MaterialTheme.typography.titleLarge)
+                            Text("Formula: ${ligand.formula}")
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text("Struttura (CIF):", fontWeight = FontWeight.Bold)
                             Text(
-                                text = state.data,
-                                style = TextStyle(
-                                    fontFamily = FontFamily.Monospace,
-                                    fontSize = MaterialTheme.typography.bodySmall.fontSize
-                                )
+                                text = ligand.raw_cif_data, // Qui c'è solo la parte atomi/legami
+                                style = TextStyle(fontFamily = FontFamily.Monospace)
                             )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text("ATOMI : ${ligand.atoms.size}")
+
+                            Text("LEGAMI : ${ligand.bonds.size}")
+
                         }
                     }
                     is Resource.Error -> {
                         Text(text = "ERRORE: ${state.message}", color = Color.Red)
                     }
                 }
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            Button(onClick = { viewModel.updateCount() }) {
+                Text("Ligandi nel DB: ${viewModel.ligandCount}")
             }
         }
 
