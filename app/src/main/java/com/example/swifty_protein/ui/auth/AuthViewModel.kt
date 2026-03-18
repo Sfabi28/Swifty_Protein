@@ -27,7 +27,7 @@ class AuthViewModel(
 
             withContext(Dispatchers.Main) {
                 if (userId != -1L) {
-                    sessionManager.saveLastUser(username)
+                    sessionManager.saveLastUser(username) // Salva l'utente
                     sessionManager.setLogin(true)
                     onResult(true, "Login successful")
                 } else {
@@ -43,6 +43,7 @@ class AuthViewModel(
 
             withContext(Dispatchers.Main) {
                 if (result.success) {
+                    sessionManager.saveLastUser(username) // Salva l'utente anche qui
                     sessionManager.setLogin(true)
                 }
                 onResult(result.success, result.message)
