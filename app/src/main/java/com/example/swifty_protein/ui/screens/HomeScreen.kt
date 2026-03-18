@@ -109,7 +109,7 @@ fun SearchBarLigand(onValueChange: (String) -> Unit) {
 }
 
 @Composable
-fun HomeScreen(onBack: () -> Unit) {
+fun HomeScreen(username: String, onBack: () -> Unit) {
     val viewModel: LigandViewModel = viewModel()
     var searchId by remember { mutableStateOf("") }
     val state = viewModel.ligandData
@@ -127,7 +127,7 @@ fun HomeScreen(onBack: () -> Unit) {
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "Test API RCSB", style = MaterialTheme.typography.headlineMedium)
+        Text(text = "Welcome $username", style = MaterialTheme.typography.headlineMedium)
 
         Spacer(modifier = Modifier.height(20.dp))
 

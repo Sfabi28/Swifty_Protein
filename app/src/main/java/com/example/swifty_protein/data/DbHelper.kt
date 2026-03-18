@@ -11,12 +11,14 @@ import org.mindrot.jbcrypt.BCrypt
 class DbHelper (private val context: Context): SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION){
     companion object{
         const val DATABASE_NAME = "mydatabase.db"
-        const val DATABASE_VERSION = 2
+        const val DATABASE_VERSION = 3
 
         const val TABLE_USERS = "users"
         const val COLUMN_ID = "_id"
         const val COLUMN_NAME = "name"
         const val COLUMN_PASSWORD = "password_hash"
+
+        const val COLUMN_IS_LOGGED = "is_logged"
 
         const val TABLE_LIGANDS = "ligands"
         const val COLUMN_PROTEIN_ID = "id"
@@ -44,7 +46,8 @@ class DbHelper (private val context: Context): SQLiteOpenHelper(context, DATABAS
         val CREATE_TABLE_USERS = """CREATE TABLE $TABLE_USERS (
            $COLUMN_ID INTEGER PRIMARY KEY AUTOINCREMENT,
            $COLUMN_NAME TEXT UNIQUE,
-           $COLUMN_PASSWORD TEXT)"""
+           $COLUMN_PASSWORD TEXT,
+           $COLUMN_IS_LOGGED INTEGER DEFAULT 0)"""
         val CREATE_TABLE_PROTEINS = """CREATE TABLE $TABLE_LIGANDS (
             $COLUMN_PROTEIN_ID TEXT PRIMARY KEY,
             $COLUMN_PROTEIN_NAME VARCHAR(255),
@@ -114,7 +117,6 @@ class DbHelper (private val context: Context): SQLiteOpenHelper(context, DATABAS
             }
         } finally {
             cursor.close()
-            db.close()
         }
     }
 
