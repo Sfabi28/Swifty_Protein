@@ -9,12 +9,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.swifty_protein.data.DbHelper
-import com.example.swifty_protein.data.SessionManager
-import com.example.swifty_protein.ui.auth.AuthViewModel
-import com.example.swifty_protein.ui.auth.AuthViewModelFactory
 import com.example.swifty_protein.ui.screens.HomeScreen
-import com.example.swifty_protein.ui.screens.LoginScreen
+import com.example.swifty_protein.LoginScreen
+
+sealed class Screen(val route: String) {     //per navigare tra le schermate possibili route
+    object Login : Screen("login_screen")
+    object Home : Screen("home_screen")
+}
+
 @Composable
 fun AppNavHost(logoutTrigger: MutableState<Boolean>? = null) {
     val navController = rememberNavController()
