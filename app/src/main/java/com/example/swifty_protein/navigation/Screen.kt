@@ -1,33 +1,61 @@
 package com.example.swifty_protein.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.swifty_protein.ui.auth.LoginScreen
-import com.example.swifty_protein.ui.home.HomeScreen
-
-sealed class Screen(val route: String) {     //per navigare tra le schermate possibili route
-    object Login : Screen("login_screen")
-    object Home : Screen("home_screen")
-}
-
+import com.example.swifty_protein.data.DbHelper
+import com.example.swifty_protein.data.SessionManager
+import com.example.swifty_protein.ui.auth.AuthViewModel
+import com.example.swifty_protein.ui.auth.AuthViewModelFactory
+import com.example.swifty_protein.ui.screens.HomeScreen
+import com.example.swifty_protein.ui.screens.LoginScreen
 @Composable
-fun AppNavHost() {
+fun AppNavHost(logoutTrigger: MutableState<Boolean>? = null) {
     val navController = rememberNavController()
+    val context = LocalContext.current
+    val dbHelper = remember { DbHelper(context) }
+    val sessionManager = remember { SessionManager(context) }
 
-    NavHost(navController,
-        startDestination = Screen.Login.route) {
-        composable(Screen.Login.route) {
-            LoginScreen(onNavigateToHome = {
-                navController.navigate(Screen.Home.route)
-            })
+    val authViewModel: AuthViewModel = viewModel(
+        factory = AuthViewModelFactory(dbHelper, sessionManager)
+    )
+
+    LaunchedEffect(logoutTrigger?.value) {
+        if (logoutTrigger?.value == true) {
+            navController.navigate("login") {
+                popUpTo(0) { inclusive = true }
+            }
+            logoutTrigger.value = false
         }
-        composable(Screen.Home.route) {
+    }
+
+    val startDestination = if (authViewModel.checkLogin()) "home" else "login"
+
+    NavHost(navController = navController, startDestination = startDestination) {
+        composable("login") {
+            LoginScreen(
+                viewModel = authViewModel,
+                onNavigateToHome = {
+                    navController.navigate("home") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable("home") {
             HomeScreen(onBack = {
-                navController.popBackStack()
+                authViewModel.logout()
+                navController.navigate("login") {
+                    popUpTo("home") { inclusive = true }
+                }
             })
         }
-
     }
 }

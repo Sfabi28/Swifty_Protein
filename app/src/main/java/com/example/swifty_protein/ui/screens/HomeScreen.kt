@@ -1,4 +1,4 @@
-package com.example.swifty_protein.ui.home
+package com.example.swifty_protein.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box

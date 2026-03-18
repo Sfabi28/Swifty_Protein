@@ -1,5 +1,6 @@
-package com.example.swifty_protein.ui.auth
+package com.example.swifty_protein.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -23,20 +24,27 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.example.swifty_protein.ui.auth.AuthViewModel
 
 @Composable
-fun LoginScreen(onNavigateToHome: () -> Unit) {
+fun LoginScreen(
+    onNavigateToHome: () -> Unit,
+    viewModel: AuthViewModel
+) {
+    val context = LocalContext.current
     var username by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
-    var validation by rememberSaveable { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
 
     val isInputValid = username.isNotEmpty() && password.isNotEmpty()
 
@@ -60,44 +68,62 @@ fun LoginScreen(onNavigateToHome: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp),
-            singleLine = true
+            singleLine = true,
+            enabled = !isLoading
         )
 
         PasswordTextField(
             value = password,
             onValueChange = { password = it },
-            modifier = Modifier.padding(bottom = 24.dp)
+            modifier = Modifier.padding(bottom = 24.dp),
+            enabled = !isLoading
         )
 
         SubmitButton(
             textId = "Login",
-            loading = false,
+            loading = isLoading,
             validInputs = isInputValid,
             onClick = {
-                onNavigateToHome()
+                isLoading = true
+                viewModel.loginUser(username, password) { success, message ->
+                    isLoading = false
+                    if (success) {
+                        Toast.makeText(context, message ?: "Login effettuato", Toast.LENGTH_SHORT).show()
+                        onNavigateToHome()
+                    } else {
+                        Toast.makeText(context, message ?: "Credenziali errate", Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
         )
 
+        Spacer(modifier = Modifier.height(8.dp))
+
         SubmitButton(
             textId = "Register",
-            loading = false,
+            loading = isLoading,
             validInputs = isInputValid,
             onClick = {
-                onNavigateToHome()
+                isLoading = true
+                viewModel.registerUser(username, password) { success, message ->
+                    isLoading = false
+                    Toast.makeText(context, message ?: "Registrazione completata", Toast.LENGTH_SHORT).show()
+                }
             }
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         IconButton(
-            onClick = { /* Azione biometrica */ },
-            modifier = Modifier.size(64.dp)
+            onClick = { /* Biometria */ },
+            modifier = Modifier.size(64.dp),
+            enabled = !isLoading
         ) {
             Icon(
                 imageVector = Icons.Default.Fingerprint,
                 contentDescription = "Biometric Login",
                 modifier = Modifier.size(48.dp),
-                tint = Color(0xFFF47B20)
+                tint = if (isLoading) Color.Gray else Color(0xFFF47B20)
             )
         }
     }
@@ -134,7 +160,8 @@ fun SubmitButton(
 fun PasswordTextField(
     value: String,
     onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     var passwordHidden by rememberSaveable { mutableStateOf(true) }
 
@@ -142,7 +169,8 @@ fun PasswordTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier.fillMaxWidth(),
-        label = { Text("Enter password") },
+        enabled = enabled,
+        label = { Text("Password") },
         visualTransformation = if (passwordHidden) {
             PasswordVisualTransformation()
         } else {
@@ -155,8 +183,7 @@ fun PasswordTextField(
                 } else {
                     Icons.Filled.VisibilityOff
                 }
-                val description = if (passwordHidden) "Show password" else "Hide password"
-                Icon(imageVector = visibilityIcon, contentDescription = description)
+                Icon(imageVector = visibilityIcon, contentDescription = null)
             }
         },
         singleLine = true
