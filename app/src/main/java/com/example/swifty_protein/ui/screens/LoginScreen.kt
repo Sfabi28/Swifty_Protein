@@ -124,23 +124,26 @@ fun LoginScreen(
         )
 
         Spacer(modifier = Modifier.height(16.dp))
-
+        val lastUser = viewModel.getLastUser()
         if (biometricPossible) {
             IconButton(
                 onClick = {
-                    activity?.let {
-                        showBiometricPrompt(
-                            activity = it,
-                            onSuccess = {
-                                viewModel.loginBiometric()
-                                onNavigateToHome()
-                            },
-                            onError = { errorMsg ->
-                                Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
-                            }
-                        )
-                    } ?: run {
-                        Toast.makeText(context, "Errore interno: Activity non trovata", Toast.LENGTH_SHORT).show()
+                    if (lastUser == null) {
+                        Toast.makeText(context, "Effettua il primo accesso con password", Toast.LENGTH_LONG).show()
+                    } else {
+                        activity?.let {
+                            showBiometricPrompt(
+                                activity = it,
+                                title = "Accesso per $lastUser", // Passa lo username al titolo
+                                onSuccess = {
+                                    viewModel.loginBiometric()
+                                    onNavigateToHome()
+                                },
+                                onError = { errorMsg ->
+                                    Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+                                }
+                            )
+                        }
                     }
                 },
                 modifier = Modifier.size(64.dp),
@@ -178,7 +181,8 @@ fun Context.findFragmentActivity(): FragmentActivity? {
 private fun showBiometricPrompt(
     activity: FragmentActivity,
     onSuccess: () -> Unit,
-    onError: (String) -> Unit
+    onError: (String) -> Unit,
+    title: String
 ) {
     val executor = ContextCompat.getMainExecutor(activity)
 

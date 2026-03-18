@@ -9,7 +9,13 @@ class SessionManager(context: Context) {
         prefs.edit().putBoolean("is_logged_in", isLoggedIn).apply()
     }
 
-    fun isLoggedIn(): Boolean {
-        return prefs.getBoolean("is_logged_in", false)
+    fun isLoggedIn(): Boolean = prefs.getBoolean("is_logged_in", false)
+
+    fun saveLastUser(username: String) {
+        prefs.edit().putString("last_logged_user", username).apply()
+    }
+
+    fun getLastUser(): String? {
+        return prefs.getString("last_logged_user", null)
     }
 }

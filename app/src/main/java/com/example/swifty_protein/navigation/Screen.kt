@@ -50,12 +50,17 @@ fun AppNavHost(logoutTrigger: MutableState<Boolean>? = null) {
         }
 
         composable("home") {
-            HomeScreen(onBack = {
-                authViewModel.logout()
-                navController.navigate("login") {
-                    popUpTo("home") { inclusive = true }
+            val currentUser = authViewModel.getLastUser()
+
+            HomeScreen(
+                username = currentUser,
+                onBack = {
+                    authViewModel.logout()
+                    navController.navigate("login") {
+                        popUpTo("home") { inclusive = true }
+                    }
                 }
-            })
+            )
         }
     }
 }

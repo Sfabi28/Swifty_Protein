@@ -13,8 +13,13 @@ class AuthViewModel(
     private val sessionManager: SessionManager
 ) : ViewModel() {
 
+    fun getLastUser(): String? = sessionManager.getLastUser()
+
     fun loginBiometric() {
-        sessionManager.setLogin(true) // TODO fare accesso con utente specifico invece che accesso random
+        val lastUser = sessionManager.getLastUser()
+        if (lastUser != null) {
+            sessionManager.setLogin(true)
+        }
     }
     fun loginUser(username: String, pass: String, onResult: (Boolean, String?) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -22,6 +27,7 @@ class AuthViewModel(
 
             withContext(Dispatchers.Main) {
                 if (userId != -1L) {
+                    sessionManager.saveLastUser(username)
                     sessionManager.setLogin(true)
                     onResult(true, "Login successful")
                 } else {
