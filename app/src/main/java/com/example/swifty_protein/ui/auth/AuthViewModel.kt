@@ -13,6 +13,9 @@ class AuthViewModel(
     private val sessionManager: SessionManager
 ) : ViewModel() {
 
+    fun loginBiometric() {
+        sessionManager.setLogin(true) // TODO fare accesso con utente specifico invece che accesso random
+    }
     fun loginUser(username: String, pass: String, onResult: (Boolean, String?) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             val userId = db.getUser(username, pass)

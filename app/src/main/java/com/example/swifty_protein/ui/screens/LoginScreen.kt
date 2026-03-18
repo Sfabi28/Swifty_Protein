@@ -1,6 +1,12 @@
 package com.example.swifty_protein.ui.screens
 
+import android.content.Context
+import android.content.ContextWrapper
 import android.widget.Toast
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
+import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK
+import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -34,6 +40,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
 import com.example.swifty_protein.ui.auth.AuthViewModel
 
 @Composable
@@ -42,6 +50,9 @@ fun LoginScreen(
     viewModel: AuthViewModel
 ) {
     val context = LocalContext.current
+    val activity = context.findFragmentActivity()
+    val biometricPossible = remember { isBiometricReady(context) }
+
     var username by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
@@ -114,20 +125,91 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        IconButton(
-            onClick = { /* Biometria */ },
-            modifier = Modifier.size(64.dp),
-            enabled = !isLoading
-        ) {
-            Icon(
-                imageVector = Icons.Default.Fingerprint,
-                contentDescription = "Biometric Login",
-                modifier = Modifier.size(48.dp),
-                tint = if (isLoading) Color.Gray else Color(0xFFF47B20)
-            )
+        if (biometricPossible) {
+            IconButton(
+                onClick = {
+                    activity?.let {
+                        showBiometricPrompt(
+                            activity = it,
+                            onSuccess = {
+                                viewModel.loginBiometric()
+                                onNavigateToHome()
+                            },
+                            onError = { errorMsg ->
+                                Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                    } ?: run {
+                        Toast.makeText(context, "Errore interno: Activity non trovata", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                modifier = Modifier.size(64.dp),
+                enabled = !isLoading
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Fingerprint,
+                    contentDescription = "Biometric Login",
+                    modifier = Modifier.size(48.dp),
+                    tint = if (isLoading) Color.Gray else Color(0xFFF47B20)
+                )
+            }
         }
     }
 }
+
+private fun hasBiometricCapability(context: Context): Int {
+    return BiometricManager.from(context).canAuthenticate(BIOMETRIC_STRONG or BIOMETRIC_WEAK)
+}
+
+fun isBiometricReady(context: Context) =
+    hasBiometricCapability(context) == BiometricManager.BIOMETRIC_SUCCESS
+
+fun Context.findFragmentActivity(): FragmentActivity? {
+    var currentContext = this
+    while (currentContext is ContextWrapper) {
+        if (currentContext is FragmentActivity) {
+            return currentContext
+        }
+        currentContext = currentContext.baseContext
+    }
+    return null
+}
+
+private fun showBiometricPrompt(
+    activity: FragmentActivity,
+    onSuccess: () -> Unit,
+    onError: (String) -> Unit
+) {
+    val executor = ContextCompat.getMainExecutor(activity)
+
+    val promptInfo = BiometricPrompt.PromptInfo.Builder()
+        .setTitle("Login Biometrico")
+        .setSubtitle("Accedi a Swifty Protein")
+        .setNegativeButtonText("Usa password")
+        .setAllowedAuthenticators(BIOMETRIC_STRONG or BIOMETRIC_WEAK)
+        .build()
+
+    val biometricPrompt = BiometricPrompt(activity, executor,
+        object : BiometricPrompt.AuthenticationCallback() {
+            override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                super.onAuthenticationError(errorCode, errString)
+                onError(errString.toString())
+            }
+
+            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                super.onAuthenticationSucceeded(result)
+                onSuccess()
+            }
+
+            override fun onAuthenticationFailed() {
+                super.onAuthenticationFailed()
+                onError("Impronta o volto non riconosciuti.")
+            }
+        })
+
+    biometricPrompt.authenticate(promptInfo)
+}
+
 
 @Composable
 fun SubmitButton(
