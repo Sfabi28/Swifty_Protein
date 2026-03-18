@@ -1,21 +1,24 @@
 package com.example.swifty_protein.data
 
 import android.content.Context
+import android.content.SharedPreferences
 
 class SessionManager(context: Context) {
-    private val prefs = context.getSharedPreferences("swifty_prefs", Context.MODE_PRIVATE)
+    private val sharedPreferences: SharedPreferences =
+        context.getSharedPreferences("SwiftyProteinPrefs", Context.MODE_PRIVATE)
 
     fun setLogin(isLoggedIn: Boolean) {
-        prefs.edit().putBoolean("is_logged_in", isLoggedIn).apply()
+        sharedPreferences.edit().putBoolean("KEY_IS_LOGGED_IN", isLoggedIn).commit()
     }
 
-    fun isLoggedIn(): Boolean = prefs.getBoolean("is_logged_in", false)
-
+    fun isLoggedIn(): Boolean {
+        return sharedPreferences.getBoolean("KEY_IS_LOGGED_IN", false)
+    }
     fun saveLastUser(username: String) {
-        prefs.edit().putString("last_logged_user", username).apply()
+        sharedPreferences.edit().putString("last_logged_user", username).apply()
     }
 
     fun getLastUser(): String? {
-        return prefs.getString("last_logged_user", null)
+        return sharedPreferences.getString("last_logged_user", null)
     }
 }
