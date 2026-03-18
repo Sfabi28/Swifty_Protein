@@ -2,9 +2,11 @@ package com.example.swifty_protein.data
 
 import android.content.ContentValues
 import android.content.Context
+import android.database.DatabaseUtils
 import android.database.sqlite.SQLiteConstraintException
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import com.example.swifty_protein.model.Ligand
 import org.mindrot.jbcrypt.BCrypt
 //database base per user
 
@@ -120,6 +122,50 @@ class DbHelper (private val context: Context): SQLiteOpenHelper(context, DATABAS
         }
     }
 
+    fun saveLigand(ligand: Ligand, rawCif: String){
+        val db = this.writableDatabase
+        val values = ContentValues().apply {
+            put(COLUMN_PROTEIN_ID, ligand.id)
+            put(COLUMN_PROTEIN_NAME, ligand.name)
+            put(COLUMN_PROTEIN_FORMULA, ligand.formula)
+            put(COLUMN_PROTEIN_WEIGHT, ligand.weight)
+            put(COLUMN_SMILES, ligand.smiles.joinToString(","))
+            put(COLUMN_INCHI, ligand.inchi.joinToString(","))
+            put(COLUMN_INCHIKEY, ligand.inchikey.joinToString(","))
+            put(COLUMN_RAW_CIF_DATA, rawCif)
+        }
+        db.insertWithOnConflict(TABLE_LIGANDS, null, values, SQLiteDatabase.CONFLICT_REPLACE)
+    }
+
+    fun getLigand (id: String): Ligand? {
+        val db = this.readableDatabase
+        val cursor = db.query(
+            TABLE_LIGANDS,
+            null,
+            "$COLUMN_PROTEIN_ID = ?",
+            arrayOf(id),
+            null,
+            null,
+            null
+        )
+
+        return cursor.use{
+            if (it.moveToFirst()) {
+                Ligand().apply {
+                    this.id = it.getString(it.getColumnIndexOrThrow(COLUMN_PROTEIN_ID))
+                    this.name = it.getString(it.getColumnIndexOrThrow(COLUMN_PROTEIN_NAME))
+                    this.formula = it.getString(it.getColumnIndexOrThrow(COLUMN_PROTEIN_FORMULA))
+                    this.weight = it.getInt(it.getColumnIndexOrThrow(COLUMN_PROTEIN_WEIGHT))
+                    this.smiles = it.getString(it.getColumnIndexOrThrow(COLUMN_SMILES)).split(",").toMutableList()
+                    this.inchi = it.getString(it.getColumnIndexOrThrow(COLUMN_INCHI)).split(",").toMutableList()
+                    this.inchikey = it.getString(it.getColumnIndexOrThrow(COLUMN_INCHIKEY)).split(",").toMutableList()
+                    this.raw_cif_data = it.getString(it.getColumnIndexOrThrow(COLUMN_RAW_CIF_DATA))
+                }
+            } else null
+        }
+
+    }
+
     fun addUser(name: String, password: String): AuthResult {
         val username = name.trim()
         if (username.isBlank() || password.isBlank()) {
@@ -141,5 +187,13 @@ class DbHelper (private val context: Context): SQLiteOpenHelper(context, DATABAS
         } finally {
             db.close()
         }
+    }
+    
+    //debug da CANCELLARE
+    fun getLigandSize(): Long {
+        val db = this.readableDatabase
+        val count = DatabaseUtils.queryNumEntries(db, TABLE_LIGANDS)
+        println("DEBUG: Number of ligands in DB: $count")
+        return count
     }
 }
