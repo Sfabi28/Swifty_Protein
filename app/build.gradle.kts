@@ -70,5 +70,8 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation("androidx.lifecycle:lifecycle-process:2.8.6")
-
+    val filamentVersion = "1.70.0"
+    implementation("com.google.android.filament:filament-android:$filamentVersion")
+    implementation("com.google.android.filament:filament-utils-android:$filamentVersion")
+    implementation("com.google.android.filament:gltfio-android:$filamentVersion")
 }
