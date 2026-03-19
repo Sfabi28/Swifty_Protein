@@ -1,5 +1,7 @@
 package com.example.swifty_protein.ui.screens
 
+import android.view.SurfaceView
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -20,13 +22,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.swifty_protein.R
 import com.example.swifty_protein.data.Resource
 import com.example.swifty_protein.ui.viewmodel.LigandViewModel
 import com.example.swifty_protein.model.Ligand
-
+import android.view.SurfaceHolder
+import com.google.android.filament.Engine
+import com.google.android.filament.SwapChain
 
 
 @Composable
@@ -35,7 +41,7 @@ fun SearchBarLigand(onValueChange: (String) -> Unit) {
     val focusManager = LocalFocusManager.current
     val notFoundText = stringResource(R.string.notFound)
     val listOfLigands = remember { mutableStateListOf<String>() }
-    
+
     LaunchedEffect(Unit) {
         try {
             context.assets.open("ligands.txt").bufferedReader().useLines { lines ->
@@ -45,7 +51,7 @@ fun SearchBarLigand(onValueChange: (String) -> Unit) {
             e.printStackTrace()
         }
     }
-    
+
     var isFocused by remember { mutableStateOf(false) }
     var text by remember { mutableStateOf("") }
 
@@ -58,7 +64,7 @@ fun SearchBarLigand(onValueChange: (String) -> Unit) {
             }
         }
     }
-    
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -113,11 +119,58 @@ fun SearchBarLigand(onValueChange: (String) -> Unit) {
 }
 
 @Composable
+fun FilamentViewer(engine: Engine) {
+    AndroidView(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        factory = { context ->
+            var swapChain: SwapChain? = null
+
+            SurfaceView(context).apply {
+                setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                holder.addCallback(
+                    object : SurfaceHolder.Callback {
+
+                        override fun surfaceCreated(holder: SurfaceHolder) {
+                            swapChain = engine.createSwapChain(holder.surface)
+                        }
+
+                        override fun surfaceChanged(
+                            holder: SurfaceHolder,
+                            format: Int,
+                            width: Int,
+                            height: Int,
+                        ) {
+
+                        }
+
+                        override fun surfaceDestroyed(holder: SurfaceHolder) {
+                            swapChain?.let {
+                                engine.destroySwapChain(it)
+                            }
+                            swapChain = null
+                        }
+                    }
+                )
+            }
+        }
+    )
+}
+
+@Composable
 fun HomeScreen(username: String, onBack: () -> Unit) {
     val viewModel: LigandViewModel = viewModel()
     var searchId by remember { mutableStateOf("") }
     val state = viewModel.ligandData
     val focusManager = LocalFocusManager.current
+    val engine = remember { Engine.create() }
+    DisposableEffect(Unit) {
+        onDispose {
+            engine.destroy()
+        }
+    }
+
 
     Column(
         modifier = Modifier
@@ -136,7 +189,7 @@ fun HomeScreen(username: String, onBack: () -> Unit) {
         Spacer(modifier = Modifier.height(20.dp))
 
         SearchBarLigand(onValueChange = { searchId = it })
-        
+
         Button(
             onClick = {
                 if (searchId.isNotBlank()) {
@@ -160,33 +213,35 @@ fun HomeScreen(username: String, onBack: () -> Unit) {
             shape = MaterialTheme.shapes.medium
         ) {
             Box(modifier = Modifier.padding(10.dp)) {
-                when (state) {
-                    is Resource.Loading -> {
-                        Text("Pronto per la ricerca...")
-                    }
-                    is Resource.Success -> {
-                        val ligand = state.data // Questo è l'oggetto Ligand parsato!
-                        ligand.parseCifData()
-                        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                            Text("Nome: ${ligand.name}", style = MaterialTheme.typography.titleLarge)
-                            Text("Formula: ${ligand.formula}")
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Text("Struttura (CIF):", fontWeight = FontWeight.Bold)
-                            Text(
-                                text = ligand.raw_cif_data, // Qui c'è solo la parte atomi/legami
-                                style = TextStyle(fontFamily = FontFamily.Monospace)
-                            )
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Text("ATOMI : ${ligand.atoms.size}")
+//                when (state) {
+//                    is Resource.Loading -> {
+//                        Text("Pronto per la ricerca...")
+//                    }
+//                    is Resource.Success -> {
+//                        val ligand = state.data // Questo è l'oggetto Ligand parsato!
+//                        ligand.parseCifData()
+//                        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+//                            Text("Nome: ${ligand.name}", style = MaterialTheme.typography.titleLarge)
+//                            Text("Formula: ${ligand.formula}")
+//                            Spacer(modifier = Modifier.height(10.dp))
+//                            Text("Struttura (CIF):", fontWeight = FontWeight.Bold)
+//                            Text(
+//                                text = ligand.raw_cif_data, // Qui c'è solo la parte atomi/legami
+//                                style = TextStyle(fontFamily = FontFamily.Monospace)
+//                            )
+//                            Spacer(modifier = Modifier.height(10.dp))
+//                            Text("ATOMI : ${ligand.atoms.size}")
+//
+//                            Text("LEGAMI : ${ligand.bonds.size}")
+//
+//                        }
+//                    }
+//                    is Resource.Error -> {
+//                        Text(text = "ERRORE: ${state.message}", color = Color.Red)
+//                    }
+//                }
+                FilamentViewer(engine)
 
-                            Text("LEGAMI : ${ligand.bonds.size}")
-
-                        }
-                    }
-                    is Resource.Error -> {
-                        Text(text = "ERRORE: ${state.message}", color = Color.Red)
-                    }
-                }
             }
         }
         Row(
@@ -202,6 +257,23 @@ fun HomeScreen(username: String, onBack: () -> Unit) {
 
         Button(onClick = { onBack() }) {
             Text(text = "Torna al Login")
+        }
+    }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun HomeScreenPreview() {
+    // Usiamo il tema del tuo progetto per vedere i colori corretti
+    com.example.swifty_protein.ui.theme.Swifty_ProteinTheme {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            HomeScreen(
+                username = "User_Demo",
+                onBack = { /* No-op in preview */ }
+            )
         }
     }
 }
