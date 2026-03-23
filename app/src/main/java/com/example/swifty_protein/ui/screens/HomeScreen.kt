@@ -1,7 +1,7 @@
 package com.example.swifty_protein.ui.screens
 
+import android.view.SurfaceHolder
 import android.view.SurfaceView
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -27,12 +27,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.swifty_protein.R
-import com.example.swifty_protein.data.Resource
 import com.example.swifty_protein.ui.viewmodel.LigandViewModel
+import com.example.swifty_protein.data.FilamentHelper
+import com.example.swifty_protein.data.Resource
 import com.example.swifty_protein.model.Ligand
-import android.view.SurfaceHolder
-import com.google.android.filament.Engine
-import com.google.android.filament.SwapChain
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
 
 
 @Composable
@@ -119,41 +120,40 @@ fun SearchBarLigand(onValueChange: (String) -> Unit) {
 }
 
 @Composable
-fun FilamentViewer(engine: Engine) {
+fun FilamentViewer(modifier: Modifier = Modifier, ligand : Ligand) {
+    val context = LocalContext.current
+    val filamentHelper = remember { mutableStateOf<FilamentHelper?>(null) }
+
     AndroidView(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        factory = { context ->
-            var swapChain: SwapChain? = null
-
-            SurfaceView(context).apply {
-                setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                holder.addCallback(
-                    object : SurfaceHolder.Callback {
-
-                        override fun surfaceCreated(holder: SurfaceHolder) {
-                            swapChain = engine.createSwapChain(holder.surface)
-                        }
-
-                        override fun surfaceChanged(
-                            holder: SurfaceHolder,
-                            format: Int,
-                            width: Int,
-                            height: Int,
-                        ) {
-
-                        }
-
-                        override fun surfaceDestroyed(holder: SurfaceHolder) {
-                            swapChain?.let {
-                                engine.destroySwapChain(it)
-                            }
-                            swapChain = null
-                        }
+        modifier = modifier,
+        factory = { ctx ->
+            SurfaceView(ctx).apply {
+                holder.addCallback(object : SurfaceHolder.Callback {
+                    override fun surfaceCreated(holder: SurfaceHolder) {
+                        // Creiamo e avviamo l'helper solo quando la superficie è pronta
+                        val helper = FilamentHelper(ctx, this@apply, ligand)
+                        filamentHelper.value = helper
+                        helper.startRendering()
                     }
-                )
+
+                    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+                        // Gestione eventuale del resize se necessario
+                    }
+
+                    override fun surfaceDestroyed(holder: SurfaceHolder) {
+                        filamentHelper.value?.destroy()
+                        filamentHelper.value = null
+                    }
+                })
+                setOnTouchListener { _, event ->
+                    filamentHelper.value?.onTouchEvent(event)
+                    true
+                }
             }
+        },
+        onRelease = {
+            filamentHelper.value?.destroy()
+            filamentHelper.value = null
         }
     )
 }
@@ -162,14 +162,10 @@ fun FilamentViewer(engine: Engine) {
 fun HomeScreen(username: String, onBack: () -> Unit) {
     val viewModel: LigandViewModel = viewModel()
     var searchId by remember { mutableStateOf("") }
-    val state = viewModel.ligandData
     val focusManager = LocalFocusManager.current
-    val engine = remember { Engine.create() }
-    DisposableEffect(Unit) {
-        onDispose {
-            engine.destroy()
-        }
-    }
+
+    val state = viewModel.ligandData
+
 
 
     Column(
@@ -203,7 +199,7 @@ fun HomeScreen(username: String, onBack: () -> Unit) {
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        Text(text = "Risultato (Raw):", style = MaterialTheme.typography.titleMedium)
+        Text(text = "Ligande 3D (ball.glb):", style = MaterialTheme.typography.titleMedium)
 
         Surface(
             modifier = Modifier
@@ -213,37 +209,30 @@ fun HomeScreen(username: String, onBack: () -> Unit) {
             shape = MaterialTheme.shapes.medium
         ) {
             Box(modifier = Modifier.padding(10.dp)) {
-//                when (state) {
-//                    is Resource.Loading -> {
-//                        Text("Pronto per la ricerca...")
-//                    }
-//                    is Resource.Success -> {
-//                        val ligand = state.data // Questo è l'oggetto Ligand parsato!
-//                        ligand.parseCifData()
-//                        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-//                            Text("Nome: ${ligand.name}", style = MaterialTheme.typography.titleLarge)
-//                            Text("Formula: ${ligand.formula}")
-//                            Spacer(modifier = Modifier.height(10.dp))
-//                            Text("Struttura (CIF):", fontWeight = FontWeight.Bold)
-//                            Text(
-//                                text = ligand.raw_cif_data, // Qui c'è solo la parte atomi/legami
-//                                style = TextStyle(fontFamily = FontFamily.Monospace)
-//                            )
-//                            Spacer(modifier = Modifier.height(10.dp))
-//                            Text("ATOMI : ${ligand.atoms.size}")
-//
-//                            Text("LEGAMI : ${ligand.bonds.size}")
-//
-//                        }
-//                    }
-//                    is Resource.Error -> {
-//                        Text(text = "ERRORE: ${state.message}", color = Color.Red)
-//                    }
-//                }
-                FilamentViewer(engine)
+                when (state) {
+                    is Resource.Loading -> {
+                        Text("Pronto per la ricerca...")
+                    }
 
+                    is Resource.Success -> {
+                        val ligand = state.data
+                        ligand.parseCifData()
+
+                        FilamentViewer(modifier = Modifier.fillMaxSize(), ligand)
+
+
+                    }
+
+                    is Resource.Error -> {
+                        Text(text = "ERRORE: ${state.message}", color = Color.Red)
+                    }
+                }
             }
         }
+
+
+        Spacer(modifier = Modifier.height(10.dp))
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End
@@ -253,7 +242,7 @@ fun HomeScreen(username: String, onBack: () -> Unit) {
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         Button(onClick = { onBack() }) {
             Text(text = "Torna al Login")
@@ -261,10 +250,10 @@ fun HomeScreen(username: String, onBack: () -> Unit) {
     }
 }
 
+
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun HomeScreenPreview() {
-    // Usiamo il tema del tuo progetto per vedere i colori corretti
     com.example.swifty_protein.ui.theme.Swifty_ProteinTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),

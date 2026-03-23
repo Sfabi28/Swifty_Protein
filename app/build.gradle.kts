@@ -62,7 +62,13 @@ dependencies {
     implementation(libs.androidx.compose.runtime)
     implementation("androidx.biometric:biometric:1.1.0")
     implementation(libs.androidx.appcompat)
+    
+    // Filament dependencies from version catalog
     implementation(libs.filament.android)
+    implementation(libs.filament.utils)
+    implementation(libs.filament.gltfio)
+    implementation(libs.filament.filamat)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -71,8 +77,4 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation("androidx.lifecycle:lifecycle-process:2.8.6")
-    val filamentVersion = "1.70.0"
-    implementation("com.google.android.filament:filament-android:$filamentVersion")
-    implementation("com.google.android.filament:filament-utils-android:$filamentVersion")
-    implementation("com.google.android.filament:gltfio-android:$filamentVersion")
 }
