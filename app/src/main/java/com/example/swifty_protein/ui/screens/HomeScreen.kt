@@ -215,8 +215,9 @@ fun HomeScreen(username: String, onBack: () -> Unit) {
                     }
 
                     is Resource.Success -> {
-                        val ligand = state.data
-                        ligand.parseCifData()
+                        val ligand = remember(state.data) {
+                            state.data.also { it.parseCifData() }
+                        }
 
                         FilamentViewer(modifier = Modifier.fillMaxSize(), ligand)
 
