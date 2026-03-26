@@ -61,27 +61,16 @@ class FilamentHelper(val context: Context, val surfaceView: SurfaceView, val lig
             customCamera = engine.createCamera(cameraEntity)
             modelViewer.view.camera = customCamera
 
-            val ibl = IndirectLight.Builder()
-                .intensity(120000.0f)
-                .build(engine)
-            scene.indirectLight = ibl
-
-
             val skybox = Skybox.Builder()
-                .color(0.1f, 0.1f, 0.1f, 0.2f)
+                .color(0.1f, 0.1f, 0.1f, 1.0f)
                 .build(engine)
             scene.skybox = skybox
 
-            LightManager.Builder(LightManager.Type.DIRECTIONAL)
-                .color(1.0f, 1.0f, 1.0f)
-                .intensity(80000.0f) // Un po' meno intensa perché c'è l'IBL
-                .direction(0.0f, -1.0f, -1.0f)
-                .castShadows(false)
-                .build(engine, lightEntity)
-            scene.addEntity(lightEntity)
-
-
-            // RIMOSSA la riga modelViewer.view.camera = ...
+            // SOLO IBL, nessuna luce direzionale
+            val ibl = IndirectLight.Builder()
+                .intensity(100000.0f)
+                .build(engine)
+            scene.indirectLight = ibl
 
             loadLigand(engine, scene)
             Choreographer.getInstance().postFrameCallback(frameCallback)
@@ -165,10 +154,14 @@ class FilamentHelper(val context: Context, val surfaceView: SurfaceView, val lig
         val rm = engine.renderableManager
         val instance = rm.getInstance(entity)
         if (instance != 0) {
-            // Prendi il materiale dell'istanza (indice 0 solitamente per ball.glb)
             val materialInstance = rm.getMaterialInstanceAt(instance, 0)
-            // "baseColorFactor" è il parametro standard glTF per il colore
             materialInstance.setParameter("baseColorFactor", color[0], color[1], color[2], 1.0f)
+            materialInstance.setParameter("metallicFactor", 0.0f)
+            materialInstance.setParameter("roughnessFactor", 1.0f)
+            materialInstance.setParameter("emissiveFactor", color[0], color[1], color[2], 0.75f)
+
+            rm.setCastShadows(instance, false)
+            rm.setReceiveShadows(instance, false)
         }
     }
 
@@ -209,24 +202,7 @@ class FilamentHelper(val context: Context, val surfaceView: SurfaceView, val lig
 
         val camera = customCamera ?: return
 
-        camera.lookAt(
-            camX, camY, camZ,
-            0.0, 0.0, 0.0,
-            0.0, 1.0, 0.0
-        )
-
-        val lm = modelViewer.engine.lightManager
-        val instance = lm.getInstance(lightEntity)
-        if (instance != 0) {
-            // La direzione deve essere normalizzata.
-            // Se la camera è in (camX, camY, camZ), la direzione verso l'origine è (-camX, -camY, -camZ)
-            val dirX = -camX.toFloat()
-            val dirY = -camY.toFloat()
-            val dirZ = -camZ.toFloat()
-
-            val length = sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ)
-            lm.setDirection(instance, dirX / length, dirY / length, dirZ / length)
-        }
+        camera.lookAt(camX, camY, camZ, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
 
         val aspect = width.toDouble() / height.toDouble()
         val near = (orbitRadius * 0.01).coerceAtLeast(0.1)
@@ -308,12 +284,137 @@ class FilamentHelper(val context: Context, val surfaceView: SurfaceView, val lig
         }
     }
 
-    private fun setUpBond(
-        ligand: Ligand,
-        engine: Engine,
-        scene: Scene
-    ) {
-        
+    private fun setUpBond(ligand: Ligand, engine: Engine, scene: Scene) {
+        val centerX = ligand.atoms.map { it.x }.average().toFloat()
+        val centerY = ligand.atoms.map { it.y }.average().toFloat()
+        val centerZ = ligand.atoms.map { it.z }.average().toFloat()
+
+        val assetLoader = AssetLoader(engine, UbershaderProvider(engine), EntityManager.get())
+        val resourceLoader = ResourceLoader(engine)
+        val tm = engine.transformManager
+
+        for (bond in ligand.bonds) {
+            val a1 = bond.AtomOne ?: continue
+            val a2 = bond.AtomTwo ?: continue
+
+            val x1 = (a1.x - centerX).toFloat()
+            val y1 = (a1.y - centerY).toFloat()
+            val z1 = (a1.z - centerZ).toFloat()
+            val x2 = (a2.x - centerX).toFloat()
+            val y2 = (a2.y - centerY).toFloat()
+            val z2 = (a2.z - centerZ).toFloat()
+
+            val length = bond.getLength().toFloat()
+            if (length < 0.001f) continue
+
+            // Calcola il numero di cilindri e i loro offset laterali
+            val bondCount = when (bond.order) {
+                "SING" -> 1
+                "DOUB" -> 2
+                "TRIP" -> 3
+                else -> 1
+            }
+            val offsetDistance = 0.08f // distanza laterale tra i cilindri
+
+            // Calcola asse perpendicolare al bond per l'offset
+            val dx = x2 - x1; val dy = y2 - y1; val dz = z2 - z1
+            val yAxis = floatArrayOf(dx / length, dy / length, dz / length)
+            val worldUp = if (Math.abs(yAxis[1]) < 0.99f) floatArrayOf(0f, 1f, 0f) else floatArrayOf(1f, 0f, 0f)
+            val offsetAxis = cross(worldUp, yAxis).normalized() // asse perpendicolare
+
+            // Offset per ogni cilindro:
+            // singolo  → [0]         (centrato)
+            // doppio   → [-0.5, +0.5] (due cilindri separati)
+            // triplo   → [-1, 0, +1]  (tre cilindri)
+            val offsets = when (bondCount) {
+                1 -> listOf(0f)
+                2 -> listOf(1f, -1f)
+                3 -> listOf(-1f, 0f, 1f)
+                else -> listOf(0f)
+            }
+
+            for (offset in offsets) {
+                val ox = offsetAxis[0] * offsetDistance * offset
+                val oy = offsetAxis[1] * offsetDistance * offset
+                val oz = offsetAxis[2] * offsetDistance * offset
+
+                val bondAsset = readAsset("bond.glb")
+                val filamentAsset = assetLoader.createAsset(bondAsset) ?: continue
+                resourceLoader.loadResources(filamentAsset)
+                scene.addEntities(filamentAsset.entities)
+                filamentAsset.entities.forEach { entity ->
+                    applyBondStyle(engine, entity)
+                }
+
+                val instance = tm.getInstance(filamentAsset.root)
+                tm.setTransform(instance, buildBondTransform(
+                    x1 + ox, y1 + oy, z1 + oz,
+                    x2 + ox, y2 + oy, z2 + oz,
+                    length
+                ))
+                tm.setParent(instance, tm.getInstance(rootEntity))
+            }
+        }
+    }
+
+    private fun buildBondTransform(
+        x1: Float, y1: Float, z1: Float,
+        x2: Float, y2: Float, z2: Float,
+        length: Float
+    ): FloatArray {
+        val dx = x2 - x1
+        val dy = y2 - y1
+        val dz = z2 - z1
+
+        val yAxis = floatArrayOf(dx / length, dy / length, dz / length)
+        val worldUp = if (Math.abs(yAxis[1]) < 0.99f) floatArrayOf(0f, 1f, 0f) else floatArrayOf(1f, 0f, 0f)
+        val xAxis = cross(worldUp, yAxis).normalized()
+        val zAxis = cross(xAxis, yAxis).normalized()
+
+        val cx = (x1 + x2) / 2f
+        val cy = (y1 + y2) / 2f
+        val cz = (z1 + z2) / 2f
+
+        // Sottrai il raggio degli atomi da entrambe le estremità
+        val atomRadius = ATOM_SCALE  // 0.3f
+        val adjustedLength = (length - atomRadius * 2f).coerceAtLeast(0.01f)
+
+        val scaleXZ = 0.1f
+        return floatArrayOf(
+            xAxis[0] * scaleXZ,          xAxis[1] * scaleXZ,          xAxis[2] * scaleXZ,          0f,
+            yAxis[0] * adjustedLength,   yAxis[1] * adjustedLength,   yAxis[2] * adjustedLength,   0f,
+            zAxis[0] * scaleXZ,          zAxis[1] * scaleXZ,          zAxis[2] * scaleXZ,          0f,
+            cx, cy, cz, 1f
+        )
+    }
+
+    private fun applyBondStyle(engine: Engine, entity: Int) {
+        val rm = engine.renderableManager
+        val instance = rm.getInstance(entity)
+        if (instance != 0) {
+            val materialInstance = rm.getMaterialInstanceAt(instance, 0)
+            // Colore grigio per i bond
+            materialInstance.setParameter("baseColorFactor", 0.7f, 0.7f, 0.7f, 1.0f)
+            materialInstance.setParameter("metallicFactor", 0.0f)
+            materialInstance.setParameter("roughnessFactor", 1.0f)
+            materialInstance.setParameter("emissiveFactor", 0.7f, 0.7f, 0.7f, 0.75f)
+            rm.setCastShadows(instance, false)
+            rm.setReceiveShadows(instance, false)
+        }
+    }
+
+    // Utility
+    private fun cross(a: FloatArray, b: FloatArray): FloatArray {
+        return floatArrayOf(
+            a[1]*b[2] - a[2]*b[1],
+            a[2]*b[0] - a[0]*b[2],
+            a[0]*b[1] - a[1]*b[0]
+        )
+    }
+
+    private fun FloatArray.normalized(): FloatArray {
+        val len = sqrt((this[0]*this[0] + this[1]*this[1] + this[2]*this[2]).toDouble()).toFloat()
+        return if (len > 0.0001f) floatArrayOf(this[0]/len, this[1]/len, this[2]/len) else this
     }
 
     private fun readAsset(assetName: String): ByteBuffer {
