@@ -108,8 +108,8 @@ class Ligand {
 
             val splitLine = trimmed.split(Regex("\\s+"))
             when (splitLine.size) {
-                18 -> parseAtom(splitLine, xIdx = 9, yIdx = 10, zIdx = 11, ordIdx = 17)
-                21 -> parseAtom(splitLine, xIdx = 12, yIdx = 13, zIdx = 14, ordIdx = 20)
+                18 -> parseAtom(splitLine, xIdx = 12, yIdx = 13, zIdx = 14, ordIdx = 17)
+                21 -> parseAtom(splitLine, xIdx = 15, yIdx = 16, zIdx = 17, ordIdx = 20)
                 7 -> parseBond(splitLine)
             }
         }
